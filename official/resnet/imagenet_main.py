@@ -332,6 +332,23 @@ def define_imagenet_flags():
   flags_core.set_defaults(train_epochs=90)
 
 
+def define_experiment():
+  """Define flags for our own purpose.
+
+  """
+  flags.DEFINE_boolean(name='custom_bn', default=False,
+                       help='Replace original batch normalization by custom.')
+
+from tf_batchnorm_l2_noautograd import _fused_batch_norm
+def init_experiment(flags_obj):
+  """ Initialize experiment.
+
+  """
+  if flags_obj['custom_bn'].value:
+    from tensorflow.python.ops import gen_nn_ops
+    gen_nn_ops._fused_batch_norm = _fused_batch_norm
+
+
 def run_imagenet(flags_obj):
   """Run ResNet ImageNet training and eval loop.
 
@@ -349,10 +366,12 @@ def run_imagenet(flags_obj):
 
 def main(_):
   with logger.benchmark_context(flags.FLAGS):
+    init_experiment(flags.FLAGS)
     run_imagenet(flags.FLAGS)
 
 
 if __name__ == '__main__':
   tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
   define_imagenet_flags()
+  define_experiment()
   absl_app.run(main)
